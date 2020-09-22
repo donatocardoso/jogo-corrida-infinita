@@ -20,12 +20,20 @@ public class JogadorController : MonoBehaviour
     public float distanciaRaia = 1.5f;
     
     public Vector3 posicao;
+
+    public AudioSource somPonto;
+    public AudioSource somColisao;
+
     private Vector2 posicaoInicial;
 
     // Start is called before the first frame update
     void Start()
     {
         txtPontuacao.text = "0 pts";
+
+        somPonto = GetComponents<AudioSource>()[0];
+        somColisao = GetComponents<AudioSource>()[1];
+
         posicao = jogador.transform.position;
 
         montarCenario();
@@ -111,6 +119,8 @@ public class JogadorController : MonoBehaviour
     {
         if (col.gameObject.CompareTag("moeda"))
         {
+            somPonto.Play();
+
             Destroy(col.gameObject);
             
             pontuacao++;
@@ -119,6 +129,8 @@ public class JogadorController : MonoBehaviour
 
         if (col.gameObject.CompareTag("obstaculo"))
         {
+            somColisao.Play();
+
             SceneManager.LoadScene("GameOver", LoadSceneMode.Single);
         }
     }
