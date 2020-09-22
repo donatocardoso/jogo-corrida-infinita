@@ -7,11 +7,12 @@ using UnityEngine.SceneManagement;
 public class JogadorController : MonoBehaviour
 {    
     public Rigidbody jogador;
-    public float velocidadeChao;
-    public GameObject chao;
+    public float velocidadeCenario;
+    public GameObject cenario;
+    public GameObject campo;
     public GameObject obstaculo;
     public GameObject moeda;
-    public int estagioAtual = 0;
+    public int estagioAtual = -1;
     public int pontuacao = 0;
     public Text txtPontuacao;
 
@@ -92,31 +93,18 @@ public class JogadorController : MonoBehaviour
 
         if (jogador.transform.position.x != posicao.x)
         {
-            jogador.transform.position = Vector3.Lerp(jogador.transform.position, posicao, 5 * 1.2f * Time.deltaTime);
+            jogador.transform.position = Vector3.Lerp(jogador.transform.position, posicao, 6 * Time.deltaTime);
         }
+
+        var velocidade = (velocidadeCenario * ((estagioAtual * 0.2f) + 1));
 
         // roda a bola
-        jogador.transform.Rotate(velocidadeChao * 1.2f, 0.0f, 0.0f, Space.Self);
+        jogador.transform.Rotate(velocidade * 1.2f, 0.0f, 0.0f, Space.Self);
 
-        // move o chao
-        chao.transform.Translate(0, 0, Time.deltaTime * velocidadeChao * -1);
+        // move o cenario
+        cenario.transform.Translate(0, 0, Time.deltaTime * velocidade * -1);
 
-        float barreira = Mathf.Floor((chao.transform.position.z / 10) * -2);
-        
-        Debug.Log("estagio..: " + ((estagioAtual * 10) + 3));
-        Debug.Log("barreira.: " + barreira);
-
-        if (((estagioAtual * 10) + 4) < barreira)
-        {
-            GameObject chao2 = Instantiate(chao);
-            float chao2z = (100 * (estagioAtual + 1)) + chao.transform.position.z;
-
-            chao2.transform.SetParent(chao.transform);
-            chao2.transform.position = new Vector3(chao.transform.position.x, chao.transform.position.y, chao2z);
-            
-            estagioAtual++;
-            montarCenario();
-        }
+        montarCenario();
     }
 
     void OnCollisionEnter(Collision col) 
@@ -137,44 +125,47 @@ public class JogadorController : MonoBehaviour
 
     private void montarCenario() 
     {
-        GameObject newChao = Instantiate(chao);
-        float newChaoZ = (chao.transform.position.z + (estagioAtual * 110));
+        float barreira = Mathf.Floor((cenario.transform.position.z / 10) * -2);
 
-        newChao.transform.SetParent(chao.transform);
-        newChao.transform.position = new Vector3(chao.transform.position.x, chao.transform.position.y, newChaoZ);
-        
-        estagioAtual++;
-
-        for (int i = 2; i <= 10; i++) 
+        if ((estagioAtual * 100) < (cenario.transform.position.z * -1))
         {
-            EstagioModel estagio = new EstagioModel();
+            GameObject newCampo = Instantiate(campo);
 
-            instanciaElemento(-1, i, newChao, estagio.Elemento1);
-            instanciaElemento(0, i, newChao, estagio.Elemento2);
-            instanciaElemento(1, i, newChao, estagio.Elemento3);
+            float newCampoZ = (cenario.transform.position.z + ((estagioAtual + 1) * 100));
+
+            newCampo.transform.SetParent(cenario.transform);
+            newCampo.transform.position = new Vector3(cenario.transform.position.x, cenario.transform.position.y, newCampoZ);
+            
+            for (int i = (estagioAtual < 1 ? 3 : 1); i <= 10; i++) 
+            {
+                EstagioModel estagio = new EstagioModel();
+
+                instanciaElemento(-1, i, newCampoZ, estagio.Elemento1);
+                instanciaElemento(0, i, newCampoZ, estagio.Elemento2);
+                instanciaElemento(1, i, newCampoZ, estagio.Elemento3);
+            }
+
+            estagioAtual++;
         }
     }
 
-    private void instanciaElemento(int raia, int barreira, GameObject newChao, int elemento)
+    private void instanciaElemento(int raia, int barreira, float newCampoZ, int elemento)
     {
+        float posz = (newCampoZ + (10 * barreira));
+
         if (elemento == 0)
-        { 
-            return;
-            GameObject moeda2 = Instantiate(moeda);
+        {
+            GameObject ponto = Instantiate(moeda);
     
-            float posz = ((newChao.transform.position.z / 10) * barreira) + 10;
-        
-            moeda2.transform.SetParent(chao.transform);
-            moeda2.transform.position = new Vector3(raia * distanciaRaia, 0.6f, posz);
+            ponto.transform.SetParent(cenario.transform);
+            ponto.transform.position = new Vector3(raia * distanciaRaia, 0.6f, posz);
         }
             
         if (elemento == 2)
         { 
             GameObject bloco = Instantiate(obstaculo);
-    
-            float posz = (newChao.transform.position.z + (10 * barreira));
-        
-            bloco.transform.SetParent(chao.transform);
+
+            bloco.transform.SetParent(cenario.transform);
             bloco.transform.position = new Vector3(raia * distanciaRaia, 0.6f, posz);
         }
     }

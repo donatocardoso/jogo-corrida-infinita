@@ -13,6 +13,6 @@ public class MoedaController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        transform.Rotate(new Vector3(0,0,90) * 2f * Time.deltaTime);
+        transform.Rotate(0f, 0f, 6f, Space.Self);
     }
 }
