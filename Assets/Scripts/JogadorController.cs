@@ -12,6 +12,7 @@ public class JogadorController : MonoBehaviour
     public GameObject campo;
     public GameObject obstaculo;
     public GameObject moeda;
+    public GameObject diamante;
     public int estagioAtual = -1;
     public int pontuacao = 0;
     public Text txtPontuacao;
@@ -23,16 +24,22 @@ public class JogadorController : MonoBehaviour
 
     public AudioSource somPonto;
     public AudioSource somColisao;
+    public AudioSource somTema1;
+    public AudioSource somTema2;
 
     private Vector2 posicaoInicial;
+    private bool pulando = false;
+    private bool pegouDiamante = false;
 
     // Start is called before the first frame update
     void Start()
     {
-        txtPontuacao.text = "0 pts";
-
         somPonto = GetComponents<AudioSource>()[0];
         somColisao = GetComponents<AudioSource>()[1];
+        somTema1 = GetComponents<AudioSource>()[2];
+        somTema2 = GetComponents<AudioSource>()[3];
+
+        txtPontuacao.text = "0 pts";
 
         posicao = jogador.transform.position;
 
@@ -42,6 +49,8 @@ public class JogadorController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        bool pular = false;
+
         // teclado
         if (Input.GetKeyDown(KeyCode.RightArrow) && raia < 1)
         {
@@ -51,6 +60,11 @@ public class JogadorController : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.LeftArrow) && raia > -1)
         {
             raia -= 1;
+        }
+
+        if(Input.GetKeyDown(KeyCode.UpArrow))
+        {
+            pular = true;
         }
         
         // mouse
@@ -69,6 +83,11 @@ public class JogadorController : MonoBehaviour
             if (Input.mousePosition.x < posicaoInicial.x && raia > -1)
             {
                 raia -= 1;
+            }
+
+            if(Input.mousePosition.y > posicaoInicial.y)
+            {
+                pular = true;
             }
         }
 
@@ -91,6 +110,11 @@ public class JogadorController : MonoBehaviour
                 {
                     raia -= 1;
                 }
+
+                if(Input.GetTouch(0).position.y > posicaoInicial.y)
+                {
+                    pular = true;
+                }
             }
         }
 
@@ -99,9 +123,31 @@ public class JogadorController : MonoBehaviour
             posicao = new Vector3(raia * distanciaRaia, jogador.transform.position.y, jogador.transform.position.z);
         }
 
-        if (jogador.transform.position.x != posicao.x)
+        if(pular)
         {
-            jogador.transform.position = Vector3.Lerp(jogador.transform.position, posicao, 6 * Time.deltaTime);
+            pulando = true;
+        }
+
+        if(pulando)
+        {
+            if(jogador.transform.position.y < 4f)
+            {
+                posicao.y = 4.5f;
+                jogador.transform.position = Vector3.Lerp(jogador.transform.position, posicao, 3 * Time.deltaTime);
+            }
+            else
+            {
+                pulando = false;
+            }
+        }
+        else if(!pulando && jogador.transform.position.y > 0.5f)
+        {
+            posicao.y = 0.5f;
+            jogador.transform.position = Vector3.Lerp(jogador.transform.position, posicao, 3 * Time.deltaTime);
+        }
+        else if (jogador.transform.position.x != posicao.x)
+        {
+            jogador.transform.position = Vector3.Lerp(jogador.transform.position, posicao, 8 * Time.deltaTime);
         }
 
         var velocidade = (velocidadeCenario * ((estagioAtual * 0.2f) + 1));
@@ -127,11 +173,39 @@ public class JogadorController : MonoBehaviour
             txtPontuacao.text = pontuacao + " pts";
         }
 
+        if (col.gameObject.CompareTag("diamante"))
+        {
+            if(!pegouDiamante)
+            {
+                StopAllAudio();
+                somTema2.Play();
+            }
+
+            somPonto.Play();
+            Destroy(col.gameObject);
+            
+            pontuacao += 3;
+            txtPontuacao.text = pontuacao + " pts";
+            pegouDiamante = true;
+        }
+
         if (col.gameObject.CompareTag("obstaculo"))
         {
             somColisao.Play();
+            
+            new WaitForSeconds(5);
 
             SceneManager.LoadScene("GameOver", LoadSceneMode.Single);
+        }
+    }
+
+    private void StopAllAudio()
+    {
+        AudioSource[] audios = FindObjectsOfType(typeof(AudioSource)) as AudioSource[];
+
+        foreach( AudioSource audio in audios)
+        {
+            audio.Stop();
         }
     }
 
@@ -150,14 +224,34 @@ public class JogadorController : MonoBehaviour
             
             for (int i = (estagioAtual < 1 ? 3 : 1); i <= 10; i++) 
             {
-                EstagioModel estagio = new EstagioModel();
+                if(estagioAtual == 6 && i == 1)
+                {
+                    // Cria diamante
+                    instanciaElemento(0, i, newCampoZ, 4);
+                }
+                else if(estagioAtual == 8 && pegouDiamante)
+                {
+                    // Cria diamantes
+                    instanciaElemento(-1, i, newCampoZ, 4);
+                    instanciaElemento(0, i, newCampoZ, 4);
+                    instanciaElemento(1, i, newCampoZ, 4);
+                }
+                else
+                {
+                    EstagioModel estagio = new EstagioModel();
 
-                instanciaElemento(-1, i, newCampoZ, estagio.Elemento1);
-                instanciaElemento(0, i, newCampoZ, estagio.Elemento2);
-                instanciaElemento(1, i, newCampoZ, estagio.Elemento3);
+                    instanciaElemento(-1, i, newCampoZ, estagio.Elemento1);
+                    instanciaElemento(0, i, newCampoZ, estagio.Elemento2);
+                    instanciaElemento(1, i, newCampoZ, estagio.Elemento3);
+                }
             }
 
             estagioAtual++;
+
+            if(pegouDiamante)
+            {
+                pegouDiamante = false;
+            }
         }
     }
 
@@ -179,6 +273,14 @@ public class JogadorController : MonoBehaviour
 
             bloco.transform.SetParent(cenario.transform);
             bloco.transform.position = new Vector3(raia * distanciaRaia, 0.6f, posz);
+        }
+
+        if (elemento == 4)
+        { 
+            GameObject cristal = Instantiate(diamante);
+
+            cristal.transform.SetParent(cenario.transform);
+            cristal.transform.position = new Vector3(raia * distanciaRaia, 1f, posz);
         }
     }
 }
